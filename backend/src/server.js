@@ -1,11 +1,12 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/database');
-const { notFound, errorHandler } = require('./middleware/errorHandler');
+const { errorHandler } = require('./middleware/errorHandler');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -54,6 +55,9 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// ── Static Files (React build) ─────────────────────────────────────────────────
+app.use(express.static(path.join(__dirname, '../public')));
+
 // ── Health Check ───────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
   res.json({
@@ -86,8 +90,12 @@ app.get('/api', (req, res) => {
   });
 });
 
+// ── Catch-all: serve React app for non-API routes (client-side routing) ────────
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
 // ── Error Handlers ─────────────────────────────────────────────────────────────
-app.use(notFound);
 app.use(errorHandler);
 
 // ── Start Server ───────────────────────────────────────────────────────────────
